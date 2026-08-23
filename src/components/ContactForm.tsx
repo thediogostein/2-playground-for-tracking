@@ -209,14 +209,13 @@ export default function ContactForm() {
           </CardContent>
         ) : (
           <form id="contact-form" noValidate onSubmit={handleSubmit}>
-            <CardContent className="grid gap-5 px-6 pb-6 sm:grid-cols-2 sm:px-8">
+            <CardContent className="grid gap-5 px-6 pb-6 sm:px-8">
               {FIELDS.map((field) => {
                 const Icon = field.icon;
                 const error = errors[field.id];
-                const fullWidth = field.id === "revenue" ? "sm:col-span-2" : "";
 
                 return (
-                  <div key={field.id} className={`space-y-2 ${fullWidth}`}>
+                  <div key={field.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <Label htmlFor={field.id} className="flex items-center gap-2">
                         <Icon className="size-4 text-primary" aria-hidden="true" />
@@ -263,9 +262,9 @@ export default function ContactForm() {
                 );
               })}
 
-              <div className="flex justify-center sm:col-span-2"><div ref={turnstileRef} /></div>
+              <div className="flex justify-center"><div ref={turnstileRef} /></div>
               {submitError && (
-                <p role="alert" className="whitespace-pre-line text-center text-sm text-destructive sm:col-span-2">{submitError}</p>
+                <p role="alert" className="whitespace-pre-line text-center text-sm text-destructive">{submitError}</p>
               )}
             </CardContent>
 
