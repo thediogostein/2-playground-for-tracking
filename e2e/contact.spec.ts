@@ -19,14 +19,14 @@ test.describe("Formulário de Contato", () => {
     await expect(page.locator('input[placeholder*="(11)"]')).toBeVisible();
     await expect(page.locator('input[placeholder*="seu@email"]')).toBeVisible();
     await expect(page.locator('input[placeholder*="Nome da sua empresa"]')).toBeVisible();
-    await expect(page.locator('[role="combobox"]')).toBeVisible();
+    await expect(page.locator('select[name="revenue"]')).toBeVisible();
 
     await page.fill('input[placeholder*="Digite seu nome"]', "Maria Teste");
     await page.fill('input[placeholder*="(11)"]', "11988887777");
     await page.fill('input[placeholder*="seu@email"]', "maria@teste.com");
     await page.fill('input[placeholder*="Nome da sua empresa"]', "Empresa Teste");
-    await page.click('[role="combobox"]');
-    await page.getByRole("option", { name: "Até R$ 10 mil" }).click();
+    await page.locator('select[name="revenue"]').selectOption("ate-10k");
+    await expect(page.locator('select[name="revenue"]')).toHaveValue("ate-10k");
     await page.click('button:has-text("Enviar dados")');
 
     await page.waitForURL("**/obrigado", { timeout: 15000 });

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function getUTMs(): Record<string, string> {
   const params = new URLSearchParams(window.location.search);
@@ -225,21 +224,23 @@ export default function ContactForm() {
                     </div>
 
                     {field.type === "select" ? (
-                      <Select value={formData.revenue} onValueChange={(value) => updateField("revenue", value)}>
-                        <SelectTrigger
-                          id="revenue"
-                          aria-invalid={Boolean(error)}
-                          aria-describedby={error ? "revenue-error" : undefined}
-                          className={error ? "border-destructive focus:ring-destructive" : ""}
-                        >
-                          <SelectValue placeholder={field.placeholder} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REVENUE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <select
+                        id="revenue"
+                        name="revenue"
+                        value={formData.revenue}
+                        onChange={(event) => updateField("revenue", event.target.value)}
+                        onBlur={() => validateOne("revenue")}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error ? "revenue-error" : undefined}
+                        className={`flex h-12 w-full rounded-lg border bg-background px-4 py-3 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
+                          error ? "border-destructive focus-visible:ring-destructive" : "border-input"
+                        } ${formData.revenue ? "text-foreground" : "text-muted-foreground"}`}
+                      >
+                        <option value="" disabled>{field.placeholder}</option>
+                        {REVENUE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
                     ) : (
                       <Input
                         id={field.id}
