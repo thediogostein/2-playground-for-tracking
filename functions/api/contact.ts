@@ -1,4 +1,5 @@
 import type { PagesFunction } from "@cloudflare/workers-types";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 // ---------------------------------------------------------------------------
 // Rate limiting — simple in-memory store (per-request, resets on cold start)
@@ -65,14 +66,13 @@ function validate(body: ContactForm): ValidationError[] {
     }
   }
 
-  // WhatsApp (with +55 country code, e.g., +5511999999999)
+  // WhatsApp in international E.164 format, e.g., +5511999999999
   if (!body.whatsapp || typeof body.whatsapp !== "string") {
     errors.push({ field: "whatsapp", message: "WhatsApp é obrigatório." });
   } else {
-    const digits = body.whatsapp.replace(/\D/g, "");
-    // +55 Brazil = 12-13 digits total (2 code + 10-11 phone)
-    if (digits.length < 12 || digits.length > 13) {
-      errors.push({ field: "whatsapp", message: "WhatsApp inválido. Use DDD + número." });
+    const whatsapp = body.whatsapp.trim();
+    if (!isValidPhoneNumber(whatsapp)) {
+      errors.push({ field: "whatsapp", message: "WhatsApp inválido para o país informado." });
     }
   }
 

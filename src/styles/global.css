@@ -33,3 +33,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .phone-field {
+    @apply flex h-12 w-full rounded-lg border border-input bg-background px-4 shadow-sm transition-colors;
+  }
+
+  .phone-field:focus-within {
+    @apply ring-2 ring-ring ring-offset-1;
+  }
+
+  .phone-field-error {
+    @apply border-destructive;
+  }
+
+  .phone-field-error:focus-within {
+    @apply ring-destructive;
+  }
+
+  .phone-field .PhoneInputCountry {
+    @apply mr-3;
+  }
+
+  .phone-field .PhoneInputInput {
+    @apply min-w-0 flex-1 border-0 bg-transparent text-base text-foreground outline-none;
+  }
+
+  .phone-field .PhoneInputInput::placeholder {
+    @apply text-muted-foreground;
+  }
+}

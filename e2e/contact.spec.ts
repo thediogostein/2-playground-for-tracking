@@ -5,6 +5,9 @@ const BASE = process.env.TEST_URL || "https://playground-for-tracking.pages.dev"
 test.describe("Formulário de Contato", () => {
   test("fluxo completo — formulário único até /obrigado", async ({ page }) => {
     await page.route("**/api/contact", async (route) => {
+      const requestBody = route.request().postDataJSON();
+      expect(requestBody.phone).toBe("+5511988887777");
+      expect(requestBody.whatsapp).toBe("+5511988887777");
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -16,13 +19,14 @@ test.describe("Formulário de Contato", () => {
 
     // Todos os campos devem estar visíveis na mesma página.
     await expect(page.locator('input[placeholder*="Digite seu nome"]')).toBeVisible();
-    await expect(page.locator('input[placeholder*="(11)"]')).toBeVisible();
+    await expect(page.locator('input[name="phone"]')).toBeVisible();
+    await expect(page.getByLabel("País")).toBeVisible();
     await expect(page.locator('input[placeholder*="seu@email"]')).toBeVisible();
     await expect(page.locator('input[placeholder*="Nome da sua empresa"]')).toBeVisible();
     await expect(page.locator('select[name="revenue"]')).toBeVisible();
 
     await page.fill('input[placeholder*="Digite seu nome"]', "Maria Teste");
-    await page.fill('input[placeholder*="(11)"]', "11988887777");
+    await page.fill('input[name="phone"]', "11988887777");
     await page.fill('input[placeholder*="seu@email"]', "maria@teste.com");
     await page.fill('input[placeholder*="Nome da sua empresa"]', "Empresa Teste");
     await page.locator('select[name="revenue"]').selectOption("ate-10k");
@@ -53,5 +57,16 @@ test.describe("Formulário de Contato", () => {
     await emailInput.blur();
 
     await expect(page.getByText("E-mail inválido.")).toBeVisible();
+  });
+
+  test("validação — telefone inválido para o país mostra erro", async ({ page }) => {
+    await page.goto(`${BASE}/contact`);
+    await page.waitForTimeout(2000);
+
+    const phoneInput = page.locator('input[name="phone"]');
+    await phoneInput.fill("123");
+    await phoneInput.blur();
+
+    await expect(page.getByText("WhatsApp inválido para o país selecionado.")).toBeVisible();
   });
 });

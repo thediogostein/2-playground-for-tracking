@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Building2, Check, Mail, Phone, User } from "lucide-react";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import phoneLabels from "react-phone-number-input/locale/pt-BR";
+import "react-phone-number-input/style.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +52,7 @@ const REVENUE_OPTIONS = [
 
 const FIELDS: FieldDef[] = [
   { id: "name", label: "Nome completo", helper: "Como podemos chamar você?", icon: User, placeholder: "Digite seu nome completo", type: "text" },
-  { id: "phone", label: "WhatsApp", helper: "Inclua o DDD", icon: Phone, placeholder: "(11) 99999-9999", type: "tel" },
+  { id: "phone", label: "WhatsApp", helper: "Selecione o país e informe o número", icon: Phone, placeholder: "Digite seu telefone", type: "tel" },
   { id: "email", label: "E-mail", helper: "Seu melhor e-mail para contato", icon: Mail, placeholder: "seu@email.com", type: "email" },
   { id: "company", label: "Empresa", helper: "O nome do seu negócio", icon: Building2, placeholder: "Nome da sua empresa", type: "text" },
   { id: "revenue", label: "Faturamento mensal", helper: "Selecione a faixa mais próxima", icon: Building2, placeholder: "Selecione a faixa de faturamento", type: "select" },
@@ -63,8 +66,8 @@ function validateField(id: keyof FormData, value: string): string {
       if (value.trim().length > 100) return "Máximo 100 caracteres.";
       return "";
     case "phone": {
-      const digits = value.replace(/\D/g, "");
-      if (digits.length < 10 || digits.length > 11) return "WhatsApp inválido (DDD + número).";
+      if (!value) return "WhatsApp é obrigatório.";
+      if (!isValidPhoneNumber(value)) return "WhatsApp inválido para o país selecionado.";
       return "";
     }
     case "email":
@@ -79,13 +82,6 @@ function validateField(id: keyof FormData, value: string): string {
       if (!value) return "Selecione uma opção.";
       return "";
   }
-}
-
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
 export default function ContactForm() {
@@ -116,8 +112,7 @@ export default function ContactForm() {
   }, []);
 
   const updateField = useCallback((id: keyof FormData, value: string) => {
-    const nextValue = id === "phone" ? formatPhone(value) : value;
-    setFormData((previous) => ({ ...previous, [id]: nextValue }));
+    setFormData((previous) => ({ ...previous, [id]: value }));
     setErrors((previous) => ({ ...previous, [id]: undefined }));
     setSubmitError("");
   }, []);
@@ -149,7 +144,7 @@ export default function ContactForm() {
     const turnstileToken = (window as any).turnstile?.getResponse(turnstileWidgetId.current) || "";
     const submitData = {
       ...formData,
-      whatsapp: "+55" + formData.phone.replace(/\D/g, ""),
+      whatsapp: formData.phone,
       "cf-turnstile-response": turnstileToken,
       ...getUTMs(),
     };
@@ -223,7 +218,22 @@ export default function ContactForm() {
                       <span className="text-xs text-muted-foreground">{field.helper}</span>
                     </div>
 
-                    {field.type === "select" ? (
+                    {field.id === "phone" ? (
+                      <PhoneInput
+                        id="phone"
+                        name="phone"
+                        defaultCountry="BR"
+                        labels={phoneLabels}
+                        value={formData.phone}
+                        onChange={(value) => updateField("phone", value || "")}
+                        onBlur={() => validateOne("phone")}
+                        placeholder={field.placeholder}
+                        autoComplete="tel"
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error ? "phone-error" : undefined}
+                        className={`phone-field ${error ? "phone-field-error" : ""}`}
+                      />
+                    ) : field.type === "select" ? (
                       <select
                         id="revenue"
                         name="revenue"
