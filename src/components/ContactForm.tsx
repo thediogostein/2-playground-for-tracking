@@ -1,15 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { ArrowRight, ArrowLeft, Check, User, Phone, Mail, Building2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowRight, Building2, Check, Mail, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
-// ---------------------------------------------------------------------------
-// UTM capture from URL
-// ---------------------------------------------------------------------------
 function getUTMs(): Record<string, string> {
   const params = new URLSearchParams(window.location.search);
   return {
@@ -21,9 +17,6 @@ function getUTMs(): Record<string, string> {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 interface FormData {
   name: string;
   phone: string;
@@ -32,14 +25,15 @@ interface FormData {
   revenue: string;
 }
 
-interface StepDef {
+type FieldErrors = Partial<Record<keyof FormData, string>>;
+
+interface FieldDef {
   id: keyof FormData;
-  title: string;
-  subtitle: string;
+  label: string;
+  helper: string;
   icon: React.ElementType;
   placeholder: string;
-  type: "input" | "tel" | "email" | "select";
-  options?: { value: string; label: string }[];
+  type: "text" | "tel" | "email" | "select";
 }
 
 const REVENUE_OPTIONS = [
@@ -54,53 +48,14 @@ const REVENUE_OPTIONS = [
   { value: "nao-informar", label: "Prefiro não informar" },
 ];
 
-const STEPS: StepDef[] = [
-  {
-    id: "name",
-    title: "Qual é o seu nome?",
-    subtitle: "Nome completo",
-    icon: User,
-    placeholder: "Digite seu nome completo",
-    type: "input",
-  },
-  {
-    id: "phone",
-    title: "Qual o seu WhatsApp?",
-    subtitle: "Vamos entrar em contato por aqui",
-    icon: Phone,
-    placeholder: "(11) 99999-9999",
-    type: "tel",
-  },
-  {
-    id: "email",
-    title: "E o seu melhor e-mail?",
-    subtitle: "Para enviarmos materiais e novidades",
-    icon: Mail,
-    placeholder: "seu@email.com",
-    type: "email",
-  },
-  {
-    id: "company",
-    title: "Qual o nome da sua empresa?",
-    subtitle: "Conte-nos sobre o seu negócio",
-    icon: Building2,
-    placeholder: "Nome da sua empresa",
-    type: "input",
-  },
-  {
-    id: "revenue",
-    title: "Qual o faturamento mensal?",
-    subtitle: "Para entendermos melhor o seu perfil",
-    icon: Building2,
-    placeholder: "",
-    type: "select",
-    options: REVENUE_OPTIONS,
-  },
+const FIELDS: FieldDef[] = [
+  { id: "name", label: "Nome completo", helper: "Como podemos chamar você?", icon: User, placeholder: "Digite seu nome completo", type: "text" },
+  { id: "phone", label: "WhatsApp", helper: "Inclua o DDD", icon: Phone, placeholder: "(11) 99999-9999", type: "tel" },
+  { id: "email", label: "E-mail", helper: "Seu melhor e-mail para contato", icon: Mail, placeholder: "seu@email.com", type: "email" },
+  { id: "company", label: "Empresa", helper: "O nome do seu negócio", icon: Building2, placeholder: "Nome da sua empresa", type: "text" },
+  { id: "revenue", label: "Faturamento mensal", helper: "Selecione a faixa mais próxima", icon: Building2, placeholder: "Selecione a faixa de faturamento", type: "select" },
 ];
 
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
 function validateField(id: keyof FormData, value: string): string {
   switch (id) {
     case "name":
@@ -110,8 +65,7 @@ function validateField(id: keyof FormData, value: string): string {
       return "";
     case "phone": {
       const digits = value.replace(/\D/g, "");
-      if (digits.length < 10) return "WhatsApp inválido (DDD + número).";
-      if (digits.length > 11) return "WhatsApp inválido (DDD + número).";
+      if (digits.length < 10 || digits.length > 11) return "WhatsApp inválido (DDD + número).";
       return "";
     }
     case "email":
@@ -125,12 +79,9 @@ function validateField(id: keyof FormData, value: string): string {
     case "revenue":
       if (!value) return "Selecione uma opção.";
       return "";
-    default:
-      return "";
   }
 }
 
-// Brazilian phone mask
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits;
@@ -138,109 +89,70 @@ function formatPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 export default function ContactForm() {
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    phone: "",
-    email: "",
-    company: "",
-    revenue: "",
-  });
-  const [error, setError] = useState("");
+  const [formData, setFormData] = useState<FormData>({ name: "", phone: "", email: "", company: "", revenue: "" });
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-
-  const currentStep = STEPS[step];
-  const isLast = step === STEPS.length - 1;
   const turnstileRef = useRef<HTMLDivElement>(null);
-  const turnstileRendered = useRef(false);
+  const turnstileWidgetId = useRef<string | null>(null);
 
-  // Render Turnstile widget when reaching the last step
   useEffect(() => {
-    if (isLast && turnstileRef.current && !turnstileRendered.current) {
-      const tid = setTimeout(() => {
-        if ((window as any).turnstile && turnstileRef.current) {
-          (window as any).turnstile.render(turnstileRef.current, {
-            sitekey: "0x4AAAAAAD0X41y4bQf0QhgW",
-            theme: "light",
-          });
-          turnstileRendered.current = true;
-        }
-      }, 100);
-      return () => clearTimeout(tid);
-    }
-    // Reset when leaving last step
-    if (!isLast) {
-      turnstileRendered.current = false;
-      if (turnstileRef.current) {
-        turnstileRef.current.innerHTML = "";
+    const renderTurnstile = () => {
+      if ((window as any).turnstile && turnstileRef.current && turnstileWidgetId.current === null) {
+        turnstileWidgetId.current = (window as any).turnstile.render(turnstileRef.current, {
+          sitekey: "0x4AAAAAAD0X41y4bQf0QhgW",
+          theme: "light",
+        });
+        return true;
       }
-    }
-  }, [isLast]);
+      return false;
+    };
 
-  const updateField = useCallback(
-    (value: string) => {
-      setFormData((prev) => ({
-        ...prev,
-        [currentStep.id]: currentStep.type === "tel" ? formatPhone(value) : value,
-      }));
-      setError("");
-    },
-    [currentStep],
-  );
+    if (renderTurnstile()) return;
+    const intervalId = window.setInterval(() => {
+      if (renderTurnstile()) window.clearInterval(intervalId);
+    }, 200);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
-  const handleNext = () => {
-    const value = formData[currentStep.id];
-    const err = validateField(currentStep.id, value);
-    if (err) {
-      setError(err);
+  const updateField = useCallback((id: keyof FormData, value: string) => {
+    const nextValue = id === "phone" ? formatPhone(value) : value;
+    setFormData((previous) => ({ ...previous, [id]: nextValue }));
+    setErrors((previous) => ({ ...previous, [id]: undefined }));
+    setSubmitError("");
+  }, []);
+
+  const validateOne = (id: keyof FormData) => {
+    const error = validateField(id, formData[id]);
+    setErrors((previous) => ({ ...previous, [id]: error || undefined }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextErrors = FIELDS.reduce<FieldErrors>((fieldErrors, field) => {
+      const error = validateField(field.id, formData[field.id]);
+      if (error) fieldErrors[field.id] = error;
+      return fieldErrors;
+    }, {});
+
+    setErrors(nextErrors);
+    setSubmitError("");
+    if (Object.keys(nextErrors).length > 0) {
+      document.getElementById(Object.keys(nextErrors)[0])?.focus();
       return;
-    }
-    if (isLast) {
-      handleSubmit();
-    } else {
-      setStep((s) => s + 1);
-      setError("");
-    }
-  };
-
-  const handlePrev = () => {
-    setStep((s) => s - 1);
-    setError("");
-  };
-
-  const handleSubmit = async () => {
-    // Final validation
-    for (const s of STEPS) {
-      const err = validateField(s.id, formData[s.id]);
-      if (err) {
-        setError(err);
-        return;
-      }
     }
 
     setStatus("loading");
-
     (window as any).dataLayer = (window as any).dataLayer || [];
-    (window as any).dataLayer.push({
-      event: "form_step_submit",
-      formId: "contact-form",
-      currentStep: STEPS.length,
-    });
+    (window as any).dataLayer.push({ event: "form_submit_attempt", formId: "contact-form" });
 
-    // Get Turnstile token
-    const turnstileToken = (window as any).turnstile?.getResponse() || "";
-
-    // Prepend +55 for Brazil + add UTMs
-    const utms = getUTMs();
+    const turnstileToken = (window as any).turnstile?.getResponse(turnstileWidgetId.current) || "";
     const submitData = {
       ...formData,
       whatsapp: "+55" + formData.phone.replace(/\D/g, ""),
       "cf-turnstile-response": turnstileToken,
-      ...utms,
+      ...getUTMs(),
     };
 
     try {
@@ -252,197 +164,123 @@ export default function ContactForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submitData),
       });
-
       const result = await response.json();
 
       if (response.ok && result.success) {
         setStatus("success");
-        (window as any).dataLayer.push({
-          event: "form_submit_success",
-          formId: "contact-form",
-          revenue: formData.revenue,
-        });
-        setTimeout(() => {
-          window.location.href = "/obrigado";
-        }, 800);
-      } else {
-        const msg = result.errors
-          ? result.errors.map((e: any) => e.message).join("\n")
-          : result.error || "Erro ao enviar.";
-        setError(msg);
-        setStatus("error");
-        (window as any).dataLayer.push({
-          event: "form_submit_error",
-          formId: "contact-form",
-          error: result.error || "validation_error",
-        });
+        (window as any).dataLayer.push({ event: "form_submit_success", formId: "contact-form", revenue: formData.revenue });
+        window.setTimeout(() => { window.location.href = "/obrigado"; }, 800);
+        return;
       }
-    } catch {
-      setError("Erro de conexão. Verifique sua internet.");
+
+      const message = result.errors
+        ? result.errors.map((error: { message: string }) => error.message).join("\n")
+        : result.error || "Erro ao enviar.";
+      setSubmitError(message);
       setStatus("error");
-      (window as any).dataLayer.push({
-        event: "form_submit_error",
-        formId: "contact-form",
-        error: "network_error",
-      });
+      (window as any).dataLayer.push({ event: "form_submit_error", formId: "contact-form", error: result.error || "validation_error" });
+    } catch {
+      setSubmitError("Erro de conexão. Verifique sua internet.");
+      setStatus("error");
+      (window as any).dataLayer.push({ event: "form_submit_error", formId: "contact-form", error: "network_error" });
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleNext();
-    }
-  };
-
-  const Icon = currentStep.icon;
 
   return (
-    <div className="mx-auto max-w-lg px-4">
-      {/* ---- Progress Dots ---- */}
-      <div className="mb-8 flex items-center justify-center gap-2">
-        {STEPS.map((s, i) => (
-          <div key={s.id} className="flex items-center gap-2">
-            <div
-              className={cn(
-                "flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
-                i < step && "bg-emerald-500 text-white",
-                i === step && "bg-primary text-primary-foreground shadow-md scale-110",
-                i > step && "bg-muted text-muted-foreground",
-              )}
-            >
-              {i < step ? <Check className="size-4" /> : i + 1}
-            </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  "h-0.5 w-6 rounded transition-colors duration-300",
-                  i < step ? "bg-emerald-500" : "bg-muted",
-                )}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* ---- Card ---- */}
+    <div className="mx-auto max-w-2xl px-4">
       <Card className="border-0 shadow-xl shadow-primary/5">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Icon className="size-6" />
+        <CardHeader className="pb-4 text-center">
+          <div className="mx-auto mb-2 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Mail className="size-6" />
           </div>
-          <CardTitle className="text-xl">{currentStep.title}</CardTitle>
-          <CardDescription className="text-sm">{currentStep.subtitle}</CardDescription>
+          <CardTitle className="text-xl">Conte um pouco sobre você</CardTitle>
+          <CardDescription>Preencha os dados abaixo e entraremos em contato.</CardDescription>
         </CardHeader>
 
-        <CardContent className="px-8 pb-4">
-          {status === "success" ? (
-            <div className="flex flex-col items-center gap-3 py-8 text-center animate-in fade-in zoom-in-95">
+        {status === "success" ? (
+          <CardContent>
+            <div className="flex flex-col items-center gap-3 py-10 text-center animate-in fade-in zoom-in-95">
               <div className="flex size-16 items-center justify-center rounded-full bg-emerald-100">
                 <Check className="size-8 text-emerald-600" />
               </div>
               <p className="text-lg font-semibold text-emerald-700">Tudo pronto!</p>
               <p className="text-sm text-muted-foreground">Redirecionando...</p>
             </div>
-          ) : (
-            <div className="flex flex-col gap-2" onKeyDown={handleKeyDown}>
-              <Label htmlFor={currentStep.id} className="sr-only">
-                {currentStep.title}
-              </Label>
+          </CardContent>
+        ) : (
+          <form id="contact-form" noValidate onSubmit={handleSubmit}>
+            <CardContent className="grid gap-5 px-6 pb-6 sm:grid-cols-2 sm:px-8">
+              {FIELDS.map((field) => {
+                const Icon = field.icon;
+                const error = errors[field.id];
+                const fullWidth = field.id === "revenue" ? "sm:col-span-2" : "";
 
-              {currentStep.type === "select" ? (
-                <Select
-                  value={formData.revenue}
-                  onValueChange={(v) => updateField(v)}
-                >
-                  <SelectTrigger id="revenue" className="h-12 text-base">
-                    <SelectValue placeholder="Selecione a faixa de faturamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REVENUE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id={currentStep.id}
-                  type={currentStep.type === "tel" ? "tel" : currentStep.type === "email" ? "email" : "text"}
-                  placeholder={currentStep.placeholder}
-                  value={formData[currentStep.id] as string}
-                  onChange={(e) => updateField(e.target.value)}
-                  autoFocus
-                  inputMode={currentStep.type === "tel" ? "numeric" : undefined}
-                  className="text-center text-lg"
-                  autoComplete={
-                    currentStep.id === "name"
-                      ? "name"
-                      : currentStep.id === "email"
-                        ? "email"
-                        : currentStep.id === "phone"
-                          ? "tel"
-                          : "organization"
-                  }
-                />
+                return (
+                  <div key={field.id} className={`space-y-2 ${fullWidth}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label htmlFor={field.id} className="flex items-center gap-2">
+                        <Icon className="size-4 text-primary" aria-hidden="true" />
+                        {field.label}
+                      </Label>
+                      <span className="text-xs text-muted-foreground">{field.helper}</span>
+                    </div>
+
+                    {field.type === "select" ? (
+                      <Select value={formData.revenue} onValueChange={(value) => updateField("revenue", value)}>
+                        <SelectTrigger
+                          id="revenue"
+                          aria-invalid={Boolean(error)}
+                          aria-describedby={error ? "revenue-error" : undefined}
+                          className={error ? "border-destructive focus:ring-destructive" : ""}
+                        >
+                          <SelectValue placeholder={field.placeholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {REVENUE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id={field.id}
+                        name={field.id}
+                        type={field.type}
+                        placeholder={field.placeholder}
+                        value={formData[field.id]}
+                        onChange={(event) => updateField(field.id, event.target.value)}
+                        onBlur={() => validateOne(field.id)}
+                        inputMode={field.type === "tel" ? "numeric" : undefined}
+                        autoComplete={field.id === "name" ? "name" : field.id === "email" ? "email" : field.id === "phone" ? "tel" : "organization"}
+                        aria-invalid={Boolean(error)}
+                        aria-describedby={error ? `${field.id}-error` : undefined}
+                        className={error ? "border-destructive focus-visible:ring-destructive" : ""}
+                      />
+                    )}
+
+                    {error && <p id={`${field.id}-error`} role="alert" className="text-sm text-destructive">{error}</p>}
+                  </div>
+                );
+              })}
+
+              <div className="flex justify-center sm:col-span-2"><div ref={turnstileRef} /></div>
+              {submitError && (
+                <p role="alert" className="whitespace-pre-line text-center text-sm text-destructive sm:col-span-2">{submitError}</p>
               )}
+            </CardContent>
 
-              {error && (
-                <p className="text-sm text-destructive text-center animate-in slide-in-from-top-2">
-                  {error}
-                </p>
-              )}
-
-              {/* Turnstile widget on last step */}
-              {isLast && status !== "success" && (
-                <div ref={turnstileRef} className="mt-3 flex justify-center" />
-              )}
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-between px-8 pb-6">
-          {step > 0 && status !== "success" ? (
-            <Button variant="ghost" onClick={handlePrev} disabled={status === "loading"}>
-              <ArrowLeft className="size-4" />
-              Voltar
-            </Button>
-          ) : (
-            <div />
-          )}
-
-          {status !== "success" && (
-            <Button
-              onClick={handleNext}
-              disabled={status === "loading"}
-              className="min-w-32"
-            >
-              {status === "loading" ? (
-                <>
-                  <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Enviando...
-                </>
-              ) : isLast ? (
-                <>
-                  Enviar
-                  <ArrowRight className="size-4" />
-                </>
-              ) : (
-                <>
-                  Próximo
-                  <ArrowRight className="size-4" />
-                </>
-              )}
-            </Button>
-          )}
-        </CardFooter>
+            <CardFooter className="px-6 pb-8 sm:px-8">
+              <Button type="submit" size="lg" disabled={status === "loading"} className="w-full">
+                {status === "loading" ? (
+                  <><span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Enviando...</>
+                ) : (
+                  <>Enviar dados<ArrowRight className="size-4" /></>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        )}
       </Card>
-
-      {/* ---- Step counter ---- */}
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        Passo {step + 1} de {STEPS.length}
-      </p>
     </div>
   );
 }
