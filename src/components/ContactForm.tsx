@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight, Building2, Check, Mail, Phone, User } from "lucide-react";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import phoneLabels from "react-phone-number-input/locale/pt-BR";
@@ -89,28 +89,6 @@ export default function ContactForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const turnstileRef = useRef<HTMLDivElement>(null);
-  const turnstileWidgetId = useRef<string | null>(null);
-
-  useEffect(() => {
-    const renderTurnstile = () => {
-      if ((window as any).turnstile && turnstileRef.current && turnstileWidgetId.current === null) {
-        turnstileWidgetId.current = (window as any).turnstile.render(turnstileRef.current, {
-          sitekey: "0x4AAAAAAD0X41y4bQf0QhgW",
-          theme: "light",
-        });
-        return true;
-      }
-      return false;
-    };
-
-    if (renderTurnstile()) return;
-    const intervalId = window.setInterval(() => {
-      if (renderTurnstile()) window.clearInterval(intervalId);
-    }, 200);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
   const updateField = useCallback((id: keyof FormData, value: string) => {
     setFormData((previous) => ({ ...previous, [id]: value }));
     setErrors((previous) => ({ ...previous, [id]: undefined }));
@@ -141,17 +119,15 @@ export default function ContactForm() {
     (window as any).dataLayer = (window as any).dataLayer || [];
     (window as any).dataLayer.push({ event: "form_submit_attempt", formId: "contact-form" });
 
-    const turnstileToken = (window as any).turnstile?.getResponse(turnstileWidgetId.current) || "";
     const submitData = {
       ...formData,
       whatsapp: formData.phone,
-      "cf-turnstile-response": turnstileToken,
       ...getUTMs(),
     };
 
     try {
       const apiUrl = window.location.hostname === "localhost"
-        ? "https://playground-for-tracking.pages.dev/api/contact"
+        ? "https://2-playground-for-tracking.pages.dev/api/contact"
         : "/api/contact";
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -273,7 +249,6 @@ export default function ContactForm() {
                 );
               })}
 
-              <div className="flex justify-center"><div ref={turnstileRef} /></div>
               {submitError && (
                 <p role="alert" className="whitespace-pre-line text-center text-sm text-destructive">{submitError}</p>
               )}

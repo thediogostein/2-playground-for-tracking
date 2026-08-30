@@ -30,7 +30,6 @@ interface ContactForm {
   email: string;
   company: string;
   revenue: string;
-  "cf-turnstile-response"?: string;
 }
 
 interface ValidationError {
@@ -144,6 +143,7 @@ export const onRequestPost: PagesFunction = async (context) => {
   const referer = request.headers.get("referer") || "";
   const allowedOrigins = [
     "https://playground-for-tracking.pages.dev",
+    "https://2-playground-for-tracking.pages.dev",
     "https://webwizardry101.com",
     "https://www.webwizardry101.com",
     "http://localhost:4321",
@@ -190,41 +190,6 @@ export const onRequestPost: PagesFunction = async (context) => {
       JSON.stringify({ success: false, errors }),
       { status: 422, headers },
     );
-  }
-
-  // ---- Turnstile verification ----
-  const token = body["cf-turnstile-response"];
-  const turnstileSecret = (context.env as any).TURNSTILE_SECRET_KEY;
-  const testMode = (context.env as any).TURNSTILE_TEST_MODE === "true";
-
-  // Test mode: skip Turnstile (for automated testing)
-  if (!testMode) {
-    if (!token) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Verificação anti-bot necessária." }),
-        { status: 400, headers },
-      );
-    }
-
-    const turnstileResult = await fetch(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          secret: turnstileSecret,
-          response: token,
-          remoteip: ip,
-        }),
-      },
-    );
-    const turnstileData = await turnstileResult.json() as { success: boolean };
-    if (!turnstileData.success) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Verificação anti-bot falhou. Tente novamente." }),
-        { status: 400, headers },
-      );
-    }
   }
 
   // ---- Sanitize & process ----
