@@ -6,17 +6,12 @@ export interface Props {
   description?: string;
 }
 
-const { title, description = "Site para estudo de tracking com GTM" } = Astro.props;
+const { title, description = "Tracking Lab 2 — Site para estudo de tracking com GTM" } = Astro.props;
 ---
 
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <!-- Google Tag Manager -->
-    <script is:inline>
-      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src="https://awwpzqsp.webwizardry101.com/783awwpzqsp.js?"+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','750rs1yj=GRdMPSQ6WlQ6PicxQz85RwZOQ1RBURMPTQQUGAceDQACFwMDQUdGTxMcHA%3D%3D');
-    </script>
-    <!-- End Google Tag Manager -->
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
@@ -27,13 +22,10 @@ const { title, description = "Site para estudo de tracking com GTM" } = Astro.pr
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body class="flex min-h-screen flex-col bg-background text-foreground antialiased">
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://awwpzqsp.webwizardry101.com/ns.html?id=GTM-5JMVK3HN" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
     <header class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav class="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
         <a href="/" class="mr-auto text-lg font-bold tracking-tight hover:text-primary transition-colors">
-          📊 Tracking Lab
+          📊 Tracking Lab 2
         </a>
         <a
           href="/"
@@ -73,7 +65,7 @@ const { title, description = "Site para estudo de tracking com GTM" } = Astro.pr
     </main>
 
     <footer class="border-t py-6 text-center text-sm text-muted-foreground">
-      &copy; {new Date().getFullYear()} Tracking Lab — Site para estudo de GTM
+      &copy; {new Date().getFullYear()} Tracking Lab 2 — Site para estudo de GTM
     </footer>
 
     <!-- Agendor WhatsApp Widget -->
