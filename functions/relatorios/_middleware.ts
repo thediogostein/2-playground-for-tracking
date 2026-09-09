@@ -71,6 +71,9 @@ function loginPage(error?: string): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src="https://cbtsvujz.webdesignevolution.com.br/1pcbtsvujz.js?"+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','8=Ew5IMSc5TzQ9MDgkMDYpRQxXR1hCUgYNRx0QFBcREQodBBAAHBgXFxMFG1gQGw9NGBg%3D');</script>
+  <!-- End Google Tag Manager -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width" />
   <title>🔒 Acesso Restrito — Tracking Lab</title>
