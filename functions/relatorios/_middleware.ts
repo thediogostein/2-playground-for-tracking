@@ -113,6 +113,9 @@ function loginPage(error?: string): string {
   </style>
 </head>
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://cbtsvujz.webdesignevolution.com.br/ns.html?id=GTM-WGZMRCBK" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
   <div class="card">
     <h1>🔒 Relatórios</h1>
     <p>Acesso restrito. Entre com suas credenciais.</p>
