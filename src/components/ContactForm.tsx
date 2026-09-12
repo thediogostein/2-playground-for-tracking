@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ArrowRight, Building2, Check, Mail, Phone, User } from "lucide-react";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import PhoneInput, { type Country, isValidPhoneNumber } from "react-phone-number-input";
 import phoneLabels from "react-phone-number-input/locale/pt-BR";
 import "react-phone-number-input/style.css";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,7 @@ function validateField(id: keyof FormData, value: string): string {
 
 export default function ContactForm() {
   const [formData, setFormData] = useState<FormData>({ name: "", phone: "", email: "", company: "", revenue: "" });
+  const [country, setCountry] = useState<Country | undefined>("BR");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -117,7 +118,11 @@ export default function ContactForm() {
 
     setStatus("loading");
     (window as any).dataLayer = (window as any).dataLayer || [];
-    (window as any).dataLayer.push({ event: "form_submit_attempt", formId: "contact-form" });
+    (window as any).dataLayer.push({
+      event: "form_submit_attempt",
+      formId: "contact-form",
+      phone_e164: formData.phone,
+    });
 
     const submitData = {
       ...formData,
@@ -138,7 +143,12 @@ export default function ContactForm() {
 
       if (response.ok && result.success) {
         setStatus("success");
-        (window as any).dataLayer.push({ event: "form_submit_success", formId: "contact-form", revenue: formData.revenue });
+        (window as any).dataLayer.push({
+          event: "form_submit_success",
+          formId: "contact-form",
+          revenue: formData.revenue,
+          phone_e164: formData.phone,
+        });
         window.setTimeout(() => { window.location.href = "/obrigado"; }, 800);
         return;
       }
@@ -148,11 +158,21 @@ export default function ContactForm() {
         : result.error || "Erro ao enviar.";
       setSubmitError(message);
       setStatus("error");
-      (window as any).dataLayer.push({ event: "form_submit_error", formId: "contact-form", error: result.error || "validation_error" });
+      (window as any).dataLayer.push({
+        event: "form_submit_error",
+        formId: "contact-form",
+        error: result.error || "validation_error",
+        phone_e164: formData.phone,
+      });
     } catch {
       setSubmitError("Erro de conexão. Verifique sua internet.");
       setStatus("error");
-      (window as any).dataLayer.push({ event: "form_submit_error", formId: "contact-form", error: "network_error" });
+      (window as any).dataLayer.push({
+        event: "form_submit_error",
+        formId: "contact-form",
+        error: "network_error",
+        phone_e164: formData.phone,
+      });
     }
   };
 
@@ -198,7 +218,11 @@ export default function ContactForm() {
                       <PhoneInput
                         id="phone"
                         name="phone"
-                        defaultCountry="BR"
+                        country={country}
+                        onCountryChange={setCountry}
+                        international
+                        withCountryCallingCode
+                        countryCallingCodeEditable={false}
                         labels={phoneLabels}
                         value={formData.phone}
                         onChange={(value) => updateField("phone", value || "")}
