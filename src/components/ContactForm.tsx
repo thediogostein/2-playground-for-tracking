@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ArrowRight, Building2, Check, Mail, Phone, User } from "lucide-react";
-import PhoneInput, { type Country, isValidPhoneNumber } from "react-phone-number-input";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import phoneLabels from "react-phone-number-input/locale/pt-BR";
 import "react-phone-number-input/style.css";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,6 @@ function validateField(id: keyof FormData, value: string): string {
 
 export default function ContactForm() {
   const [formData, setFormData] = useState<FormData>({ name: "", phone: "", email: "", company: "", revenue: "" });
-  const [country, setCountry] = useState<Country | undefined>("BR");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -218,8 +217,7 @@ export default function ContactForm() {
                       <PhoneInput
                         id="phone"
                         name="phone"
-                        country={country}
-                        onCountryChange={setCountry}
+                        defaultCountry="BR"
                         international
                         withCountryCallingCode
                         countryCallingCodeEditable={false}
