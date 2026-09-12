@@ -142,17 +142,16 @@ export const onRequestPost: PagesFunction = async (context) => {
   const origin = request.headers.get("origin") || "";
   const referer = request.headers.get("referer") || "";
   const allowedOrigins = [
-    "https://playground-for-tracking.pages.dev",
     "https://2-playground-for-tracking.pages.dev",
-    "https://webwizardry101.com",
-    "https://www.webwizardry101.com",
+    "https://webdesignevolution.com.br",
+    "https://www.webdesignevolution.com.br",
     "http://localhost:4321",
     "http://localhost:4322",
     "http://127.0.0.1:4321",
   ];
 
-  const isAllowedOrigin = allowedOrigins.some(
-    (allowed) => origin === allowed || referer.startsWith(allowed),
+  const isAllowedOrigin = allowedOrigins.some((allowed) =>
+    origin === allowed || referer === allowed || referer.startsWith(`${allowed}/`)
   );
 
   // In dev, allow requests without origin (e.g., curl)
